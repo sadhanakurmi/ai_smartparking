@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚗 Smart Parking AI Agent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Maps API - Using a demo key for testing -->
+    <script>
+        // Initialize map without API key for demo purposes
+        function initDemoMap() {
+            const mapContainer = document.getElementById('map');
+            mapContainer.innerHTML = `
+                <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; overflow: hidden;">
+                    <!-- Demo Map Background -->
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxwYXR0ZXJuIGlkPSJncmlkIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiPgogICAgICA8cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMSkiIHN0cm9rZS13aWR0aD0iMSIvPgogICAgPC9wYXR0ZXJuPgogIDwvZGVmcz4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIiAvPgo8L3N2Zz4='); opacity: 0.3;"></div>
+                    
+                    <!-- Map Title -->
+                    <div style="position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.95); padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <h4 style="margin: 0; color: #2196F3; font-size: 1rem;"><i class="fas fa-map-marked-alt"></i> Manhattan Parking Map</h4>
+                    </div>
+                    
+                    <!-- Demo Parking Markers -->
+                    <div id="demoMarkers" style="position: relative; width: 100%; height: 100%;">
+                        <!-- Markers will be added here -->
+                    </div>
+                    
+                    <!-- Map Controls -->
+                    <div style="position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px;">
+                        <button onclick="zoomIn()" style="background: white; border: none; width: 40px; height: 40px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-plus" style="color: #666;"></i>
+                        </button>
+                        <button onclick="zoomOut()" style="background: white; border: none; width: 40px; height: 40px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-minus" style="color: #666;"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add demo markers
+            setTimeout(() => {
+                if (window.smartParking) {
+                    smartParking.createDemoMarkers();
+                }
+            }, 500);
+        }
+        
+        function zoomIn() {
+            console.log('Zoom in clicked');
+        }
+        
+        function zoomOut() {
+            console.log('Zoom out clicked');
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-car"></i> Smart Parking AI Agent</h1>
+            <p>AI-powered parking recommendations with real-time updates</p>
+            <div class="live-status">
+                <span class="live-dot"></span>
+                <span>Live Updating...</span>
+            </div>
+        </header>
+
+        <!-- Search & AI Section -->
+        <section class="search-section">
+            <div class="search-controls">
+                <div class="search-box">
+                    <input type="text" id="destination" placeholder="Enter your destination..." value="Downtown Manhattan">
+                    <button id="findParkingBtn" class="ai-btn">
+                        <i class="fas fa-robot"></i> Find Best Parking (AI)
+                    </button>
+                </div>
+                
+                <!-- Advanced Filters -->
+                <div class="advanced-filters">
+                    <h4><i class="fas fa-sliders-h"></i> Advanced Filters</h4>
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label>Max Price: $<span id="priceValue">20</span>/hr</label>
+                            <input type="range" id="priceFilter" min="0" max="20" value="20">
+                        </div>
+                        <div class="filter-group">
+                            <label>Max Distance: <span id="distanceValue">5</span> km</label>
+                            <input type="range" id="distanceFilter" min="0" max="5" step="0.1" value="5">
+                        </div>
+                        <div class="filter-group">
+                            <label>Min Slots: <span id="slotsValue">0</span></label>
+                            <input type="range" id="slotsFilter" min="0" max="30" value="0">
+                        </div>
+                        <div class="filter-group">
+                            <label>Sort By:</label>
+                            <select id="sortBy">
+                                <option value="ai">Best (AI Recommended)</option>
+                                <option value="price">Cheapest First</option>
+                                <option value="distance">Nearest First</option>
+                                <option value="availability">Most Available</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="resetFilters" class="reset-btn">
+                        <i class="fas fa-undo"></i> Reset All Filters
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Google Maps Section -->
+        <section class="map-section">
+            <h3><i class="fas fa-map-marked-alt"></i> Parking Locations Map</h3>
+            <div id="map" class="map-container"></div>
+            <div class="map-legend">
+                <div class="legend-item">
+                    <span class="legend-marker available"></span>
+                    <span>Available Parking</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-marker recommended"></span>
+                    <span>AI Recommended</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-marker limited"></span>
+                    <span>Limited Availability</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Prediction Panel -->
+        <section class="prediction-panel">
+            <h3><i class="fas fa-brain"></i> AI Traffic Analysis</h3>
+            <div id="predictionContent" class="prediction-content">
+                <div class="loading">Analyzing traffic patterns...</div>
+            </div>
+        </section>
+
+        <!-- AI Recommendation Panel -->
+        <section class="ai-panel" id="aiPanel" style="display: none;">
+            <h3><i class="fas fa-award"></i> AI Recommended Parking</h3>
+            <div id="aiRecommendation" class="ai-recommendation">
+                <!-- AI recommendation will be loaded here -->
+            </div>
+        </section>
+
+        <!-- User Bookings Section -->
+        <section class="bookings-section">
+            <div class="section-header">
+                <h3><i class="fas fa-history"></i> My Bookings</h3>
+                <div class="booking-stats" id="bookingStats">
+                    <span class="stat-item">
+                        <i class="fas fa-calendar-check"></i>
+                        <span id="totalBookings">0</span> Total
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="activeBookings">0</span> Active
+                    </span>
+                </div>
+            </div>
+            <div id="bookingsGrid" class="bookings-grid">
+                <div class="no-bookings">
+                    <i class="fas fa-calendar-plus"></i>
+                    <p>No bookings yet. Book your first parking spot!</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Parking Grid -->
+        <section class="parking-section">
+            <div class="section-header">
+                <h3><i class="fas fa-parking"></i> Available Parking Spots</h3>
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    <span>Live Updates</span>
+                    <span id="lastUpdate" class="timestamp"></span>
+                </div>
+            </div>
+            <div id="parkingGrid" class="parking-grid">
+                <div class="loading-card">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading parking data...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Chatbot -->
+        <div class="chatbot-container" id="chatbotContainer">
+            <div class="chatbot-header" onclick="toggleChatbot()">
+                <i class="fas fa-robot"></i>
+                <span>Ask AI Assistant</span>
+                <i class="fas fa-chevron-up" id="chatToggle"></i>
+            </div>
+            <div class="chatbot-body" id="chatbotBody">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="ai-message">
+                        <i class="fas fa-robot"></i>
+                        <span>Hi! I'm your AI parking assistant. Try asking:<br>
+                        • "Where should I park?"<br>
+                        • "What's the cheapest option?"<br>
+                        • "Show me closest parking"</span>
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Ask me about parking..." onkeypress="handleChatKeyPress(event)">
+                    <button onclick="sendChatMessage()" id="chatSendBtn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Modal -->
+        <div id="bookingModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3><i class="fas fa-calendar-check"></i> Book Parking Spot</h3>
+                <div id="bookingDetails">
+                    <!-- Booking details will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div id="successModal" class="modal">
+            <div class="modal-content success">
+                <span class="close">&times;</span>
+                <div class="success-content">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Booking Confirmed!</h3>
+                    <div id="successDetails"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
