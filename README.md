@@ -36,7 +36,7 @@ A modern web application that uses AI to help users find the best parking spots 
 
 1. **Clone or download the project**
    ```bash
-   cd smart_parking_AI_Agent
+   cd ai_smartparking
    ```
 
 2. **Install dependencies**
@@ -57,7 +57,7 @@ A modern web application that uses AI to help users find the best parking spots 
 ## Project Structure
 
 ```
-smart_parking_AI_Agent/
+ai_smartparking/
 ├── main_app.py          # Flask backend with AI logic
 ├── templates/
 │   └── index.html       # Main HTML template
